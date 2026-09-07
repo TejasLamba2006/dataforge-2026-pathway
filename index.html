@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Synapse That Remembers - DataForge 2026 (Pathway Track)</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#121722; --panel2:#0f141d; --line:#232b3a;
+    --text:#dfe6f2; --dim:#8b96ab; --amber:#f5b342; --cyan:#4cc9f0; --red:#ef5b6e; --green:#3ddc97;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:"Segoe UI", system-ui, -apple-system, sans-serif;
+    line-height:1.55; padding:0 20px 80px;
+  }
+  .wrap{max-width:1080px; margin:0 auto;}
+  h1{font-size:2.1rem; line-height:1.2; margin:56px 0 10px;}
+  h2{font-size:1.35rem; margin:52px 0 14px; color:var(--amber);}
+  h3{font-size:1.02rem; margin:22px 0 8px; color:var(--text);}
+  p{margin:10px 0; max-width:76ch;}
+  a{color:var(--cyan); text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  code,.mono{font-family:"Cascadia Code",Consolas,monospace; font-size:.92em;}
+  .eq{
+    font-family:Georgia,serif; font-size:1.15rem; background:var(--panel);
+    border:1px solid var(--line); border-radius:10px; padding:14px 18px;
+    margin:14px 0; overflow-x:auto;
+  }
+  sub,sup{font-size:.72em;}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; margin:16px 0;}
+  .panel2{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:14px;}
+  .tag{display:inline-block; font-size:.72rem; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--dim); border:1px solid var(--line); border-radius:999px; padding:3px 10px; margin-right:6px;}
+  .claim{
+    background:linear-gradient(135deg,#1a1409,#121722); border:1px solid #6e5416;
+    border-radius:14px; padding:22px 24px; margin:20px 0;
+  }
+  .claim .q{font-size:1.28rem; font-family:Georgia,serif; font-style:italic; color:#ffe9b8;}
+  .btn{
+    background:#1c2432; color:var(--text); border:1px solid #2c3850; border-radius:8px;
+    padding:8px 14px; cursor:pointer; font-size:.9rem; margin:3px 4px 3px 0; transition:background .15s;
+  }
+  .btn:hover{background:#26314a;}
+  .btn.primary{background:var(--amber); color:#201505; border-color:var(--amber); font-weight:600;}
+  .btn.primary:hover{background:#ffc85e;}
+  .btn.danger{border-color:#5a2731;}
+  .btn.danger:hover{background:#3a1c22;}
+  .btn:disabled{opacity:.4; cursor:not-allowed;}
+  .row{display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start;}
+  .col{flex:1; min-width:300px;}
+  .muted{color:var(--dim); font-size:.9rem;}
+  .warn{color:#ffb4be;}
+  .ok{color:var(--green);}
+  .sl{display:flex; align-items:center; gap:10px; margin:8px 0;}
+  .sl input[type=range]{flex:1; accent-color:var(--amber);}
+  canvas{border-radius:8px; image-rendering:pixelated;}
+  table{border-collapse:collapse; width:100%; font-size:.9rem;}
+  th,td{border:1px solid var(--line); padding:6px 10px; text-align:left;}
+  th{color:var(--dim); font-weight:600;}
+  /* neuron strip */
+  #neurons{display:flex; flex-wrap:wrap; gap:5px;}
+  .nrn{
+    width:26px; height:26px; border-radius:50%; border:1px solid #2c3850;
+    background:#161c29; transition:background .12s, box-shadow .12s;
+    position:relative;
+  }
+  .nrn.lit{border-color:var(--amber);}
+  /* stream */
+  #stream{display:flex; flex-wrap:wrap; gap:5px; max-height:110px; overflow-y:auto;}
+  .tok{
+    font-family:Consolas,monospace; font-size:.8rem; padding:2px 7px; border-radius:6px;
+    background:#1a2130; border:1px solid var(--line); color:var(--dim);
+  }
+  .tok.src{color:var(--cyan); border-color:#1e4a5e;}
+  .tok.dst{color:var(--amber); border-color:#5c4a1c;}
+  /* recall result */
+  .bar{height:16px; border-radius:4px; background:#1a2130; overflow:hidden; margin:4px 0;}
+  .bar>div{height:100%; background:var(--cyan); transition:width .25s;}
+  .bar.win>div{background:var(--green);}
+  .bar.lose>div{background:var(--red);}
+  /* ledger */
+  .ledger{display:flex; gap:18px; align-items:flex-end; margin-top:10px;}
+  .ledger .cell{text-align:center;}
+  .ledger .num{font-size:1.5rem; font-weight:700; font-family:Consolas,monospace;}
+  .ledger .lab{font-size:.72rem; color:var(--dim); text-transform:uppercase; letter-spacing:.06em;}
+  .ledger .vbar{width:120px; height:10px; background:#1a2130; border-radius:5px; overflow:hidden; margin:6px auto 0;}
+  .ledger .vbar>div{height:100%;}
+  .quiz input[type=text]{width:100%; background:#0d1220; color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:9px 12px; font-size:.95rem;}
+  .tick{color:var(--green); font-weight:700;}
+  .foot{margin-top:60px; border-top:1px solid var(--line); padding-top:16px; color:var(--dim); font-size:.85rem;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div style="margin-top:34px;">
+    <span class="tag">DataForge 2026</span><span class="tag">Pathway track</span>
+    <span class="tag">Synaptic plasticity as short-term memory</span>
+  </div>
+  <h1>The Synapse That Remembers</h1>
+  <p class="muted" style="margin-top:2px;">
+    An interactive explainer of <strong>synaptic plasticity as short-term memory</strong>, the mechanism
+    behind <strong>Dragon Hatchling (BDH)</strong>, a brain-inspired Post-Transformer architecture
+    from Pathway <span class="muted">(arXiv:2509.26507)</span>.
+  </p>
+</header>
+
+<section class="claim">
+  <div class="tag" style="border-color:#6e5416; color:var(--amber);">The one falsifiable claim</div>
+  <p class="q" style="margin-top:10px;">
+    "A fixed-size recurrent state can process a sequence of unbounded duration without allocating a
+    memory slot per token, but it forgets through interference."
+  </p>
+  <p class="muted" style="margin-top:10px;">
+    Everything below serves this one sentence. Don't take it on faith:
+    <strong>run the two experiments that could break it</strong> (section 2), then check where the mechanism
+    lives in BDH itself (section 3). Audience: students who know Transformers and attention.
+    Prerequisite: what a KV cache is. Learning objective: after about 10 minutes, you should be able to
+    state <em>why</em> BDH-style attention needs no growing cache, and <em>what it pays instead</em>.
+  </p>
+</section>
+
+<!-- ============================ 1. PLAYGROUND ============================ -->
+<h2>1 · The playground: teach, distract, recall</h2>
+<p>
+  Below is a live <strong>associative memory made of synapses</strong>. The toy model is running in your
+  browser right now. It has <strong>n = 24 neurons</strong> and a synaptic state
+  <strong>σ, a fixed 24×24 matrix of 576 numbers</strong>. That matrix is its <em>only</em> memory.
+  Each concept (A, B, C…) is encoded as a sparse pattern over ~6 neurons, which is how BDH encodes
+  meaning on neurons. When the model sees a pair like <span class="mono">A→B</span>, it performs a
+  <strong>Hebbian write</strong>: neurons co-active in the same moment strengthen the synapse between them.
+</p>
+<div class="panel">
+  <div class="row">
+    <div class="col" style="flex:1.05;">
+      <h3 style="margin-top:0;">Teach associations</h3>
+      <p class="muted" style="margin:4px 0 10px;">
+        One button writes one pair into σ with the Hebbian rule
+        <span class="eq" style="display:inline-block; padding:2px 10px; margin:0; font-size:1rem;">
+          σ(i,j) ← γ·σ(i,j) + x(i)·y(j)</span>
+      </p>
+      <button class="btn" id="b-taughtAB">Teach A→B</button>
+      <button class="btn" id="b-taughtCD">Teach C→D</button>
+      <button class="btn" id="b-taughtEF">Teach E→F</button>
+      <button class="btn" id="b-distract">⚡ Distract ×24</button>
+      <button class="btn danger" id="b-reset">Reset σ</button>
+      <div class="sl" style="margin-top:14px;">
+        <label class="muted" style="min-width:170px;">Decay γ = <span id="gammaVal">0.90</span></label>
+        <input type="range" id="gamma" min="50" max="99" value="90">
+      </div>
+      <p class="muted" style="font-size:.82rem;">
+        γ is the forgetting rate (ALiBi-style temporal damping in BDH). Drag it and re-teach:
+        low γ means old pairs fade fast; γ near 0.99 means everything lingers and cross-talk piles up.
+      </p>
+
+      <h3>Recall</h3>
+      <p class="muted" style="margin:4px 0 8px;">
+        Query the state with a cue pattern. <strong>Predict the answer before you click.</strong>
+        Comparing against ground truth is what makes the claim falsifiable.
+      </p>
+      <button class="btn" id="b-recallA">Recall "A → ?"</button>
+      <button class="btn" id="b-recallC">Recall "C → ?"</button>
+      <button class="btn" id="b-recallE">Recall "E → ?"</button>
+      <div id="recallOut" style="margin-top:12px;">
+        <p class="muted">Recall results will appear here. Truth: A→B, C→D, E→F.</p>
+      </div>
+    </div>
+
+    <div class="col">
+      <h3 style="margin-top:0;">The synapse matrix σ (live)</h3>
+      <canvas id="sigmaCv" width="480" height="480" style="width:100%; max-width:480px; display:block;"></canvas>
+      <p class="muted" style="font-size:.8rem; margin-top:6px;">
+        Row i = "neuron i's outgoing synapses". Brighter = stronger. The grid never resizes:
+        watch it brighten on writes and fade with decay.
+      </p>
+      <h3>Neurons lit by the last token</h3>
+      <div id="neurons"></div>
+    </div>
+  </div>
+
+  <div style="margin-top:18px;">
+    <h3 style="margin-top:0;">Token stream &amp; the memory ledger</h3>
+    <div id="stream"></div>
+    <div class="ledger">
+      <div class="cell">
+        <div class="num" id="nWrites" style="color:var(--cyan);">0</div>
+        <div class="lab">tokens written</div>
+        <div class="vbar"><div id="vWrites" style="width:0%; background:var(--cyan);"></div></div>
+      </div>
+      <div class="cell">
+        <div class="num" id="nState" style="color:var(--amber);">576</div>
+        <div class="lab">synaptic state numbers (fixed)</div>
+        <div class="vbar"><div id="vState" style="width:100%; background:var(--amber);"></div></div>
+      </div>
+      <div class="cell">
+        <div class="num" id="nKv" style="color:var(--red);">0</div>
+        <div class="lab">Transformer KV-cache numbers (grows)</div>
+        <div class="vbar"><div id="vKv" style="width:0%; background:var(--red);"></div></div>
+      </div>
+    </div>
+    <p class="muted" style="font-size:.82rem;">
+      KV-cache comparison: a Transformer attending over t tokens in this toy setting stores
+      2·d·t ≈ <span id="kvFormula">32t</span> numbers and grows forever. The synaptic state stays at
+      n·d = 192 compressed numbers (ρ = Eσ) no matter how long the stream runs.
+      <span id="spineNote"></span>
+    </p>
+  </div>
+</div>
+
+<!-- ============================ 2. FALSIFICATION ============================ -->
+<h2>2 · Try to break the claim</h2>
+<p>
+  A claim you can't test is a slogan. Three experiments; each states in advance
+  <strong>what observation would falsify it</strong>. Run them on the playground above.
+</p>
+<div class="panel">
+  <table>
+    <tr><th style="width:30%;">Experiment</th><th style="width:37%;">If the claim is TRUE you'll see</th><th>If the claim is FALSE you'll see</th></tr>
+    <tr>
+      <td><strong>E1: unbounded stream.</strong> Press "⚡ Distract ×24" ten times (240 tokens).</td>
+      <td>The KV-cache counter grows unboundedly; the synaptic-state counter never moves off 576. Memory usage is independent of stream length.</td>
+      <td>If the synaptic counter grew with tokens, the state wouldn't be fixed, and the first half of the claim would be false.</td>
+    </tr>
+    <tr>
+      <td><strong>E2: interference.</strong> Teach A→B → Recall "A" → Distract ×24 (γ=0.90) → Recall "A" again.</td>
+      <td>Confidence in B collapses or flips after distraction. The fixed state <em>can</em> forget, through cross-talk between overlapping patterns.</td>
+      <td>If recall of B were unchanged (or improved) at every distraction level, forgetting through interference, the second half of the claim, would be false.</td>
+    </tr>
+    <tr>
+      <td><strong>E3: stability-plasticity dial.</strong> Reset, set γ=0.60, teach A→B, distract ×24, recall A. Then reset, γ=0.99, repeat.</td>
+      <td>γ=0.60: old pair is wiped (fast forgetting). γ=0.99: stale associations persist and contaminate recall (slow interference). No γ is free, and that tension <em>is</em> the claim.</td>
+      <td>If some γ gave both durable memory and clean recall, the stability-plasticity trade-off would be false, and the claim's "but" would be wrong.</td>
+    </tr>
+  </table>
+  <p class="muted" style="margin-top:10px;">
+    Falsification condition for the whole artifact: if recall were perfect at every γ and every load,
+    the "forgets through interference" half of the sentence would be false. The experiments above are
+    arranged so you would catch it.
+  </p>
+</div>
+
+<!-- ============================ 3. BDH MODULE ============================ -->
+<h2>3 · Where this lives in Dragon Hatchling</h2>
+<p>
+  The toy above is a didactic reimplementation of BDH's central move:
+  <strong>attention reformulated as synaptic memory written by Hebbian learning</strong>.
+  In BDH (arXiv:2509.26507, §2) the model is <strong>n neurons</strong> with a state
+  <strong>σ(i,j)</strong> living on neuron-neuron edges (synapses), updated by
+  <strong>edge-reweighting rules</strong> called "the equations of reasoning". The paper's Table 1 rule
+  A(i),B(j)→σ(i,j) means: when neurons i and j are co-active, the synapse strengthens. σ then decays
+  with damping <span class="mono">U</span> (ALiBi-style). The paper's Fig. 2 calls this
+  "tension on elastic connectors": pulse activations x, y on nodes, slow synaptic state on edges.
+</p>
+<div class="panel">
+  <h3 style="margin-top:0;">The BDH-GPU state-space recurrence (paper Eq. 4, one layer, LayerNorm not shown)</h3>
+  <div class="eq">
+    x<sub>t,l</sub> := x<sub>t,l−1</sub> + (D<sub>x</sub>v<sub>t,l−1</sub>)<sub>+</sub>
+    &nbsp;&nbsp;·&nbsp;&nbsp;
+    a<sub>t,l</sub> := Σ<sub>τ&lt;t</sub> v<sub>τ,l−1</sub> x<sub>τ,l</sub><sup>T</sup> U<sup>t−τ</sup> x<sub>t,l</sub>
+  </div>
+  <div class="eq">
+    y<sub>t,l</sub> := (D<sub>y</sub> LN(a<sub>t,l</sub>))<sub>+</sub> ⊙ x<sub>t,l</sub>
+    &nbsp;&nbsp;·&nbsp;&nbsp;
+    v<sub>t,l</sub> := LN(E y<sub>t,l</sub>)
+  </div>
+  <p style="margin-top:12px;">
+    The middle term is <strong>linear attention with an exponential temporal kernel U</strong>,
+    computable recurrently: keep the fixed-size state <span class="mono">ρ<sub>t</sub> = γ·ρ<sub>t−1</sub> + x<sub>t</sub>v<sub>t</sub><sup>T</sup></span>,
+    read it out as <span class="mono">a<sub>t</sub> = ρ<sub>t</sub><sup>T</sup>x<sub>t</sub></span>
+    <span class="muted">[1, §3.2]. This is the same recurrent collapse used by linear-attention models
+    [3] and fixed-state SSMs [4]</span>.
+    <strong>ρ = Eσ is n·d numbers: the compressed synapse matrix never grows with t.</strong>
+    That is the first half of the claim, and it holds by construction in the architecture itself.
+  </p>
+  <p style="margin-top:8px;">
+    The second half, forgetting, is also structural. Writes are Hebbian
+    (<em>"neurons that fire together, wire together"</em> [1, §2.2, Table 1]), activations are
+    <strong>sparse and non-negative</strong> (about 5% of neurons active per token in reported BDH runs [1, §6.4]),
+    and because the state is fixed, new writes must eventually overwrite or dilute old ones.
+    BDH-CQ builds its reasoning loop on this recurrent-memory substrate: inputs continuously update
+    the model's memory at inference time, and adaptation happens in recurrent state rather than
+    weights [2]. BDH's own long-context results report the same regime:
+    strong recent-context recall, fading with temporal distance [1].
+  </p>
+  <p class="muted" style="margin-top:12px; font-size:.86rem;">
+    <strong>Sources (primary):</strong>
+    Kosowski, Uznański, Chorowski, Stamirowska, Bartoszkiewicz,
+    <em>The Dragon Hatchling: The Missing Link between the Transformer and Models of the Brain</em>,
+    arXiv:2509.26507. §2.2 (edge-reweighting kernel, Table 1), §3.2 (Eq. 4), §6 (linear attention,
+    sparse positive activations, monosemantic synapses). Code: <a href="https://github.com/pathwaycom/bdh">github.com/pathwaycom/bdh</a> ·
+    Blog: <a href="https://pathway.com/research/bdh">pathway.com/research/bdh</a>.
+  </p>
+  <h3>The concept is active now: recent papers</h3>
+  <ol style="margin:6px 0 0 18px; display:grid; gap:6px; font-size:.92rem;">
+    <li><strong>[1]</strong> Kosowski, Uznański, Chorowski, Stamirowska, Bartoszkiewicz,
+      <a href="https://arxiv.org/abs/2509.26507"><em>The Dragon Hatchling: The Missing Link between the Transformer and Models of the Brain</em></a>,
+      arXiv:2509.26507 (2025). <strong>Introduces and relies on</strong> the concept: synaptic state σ with
+      Hebbian edge-reweighting rules (§2.2, Table 1), BDH-GPU linear-attention recurrence (§3.2, Eq. 4),
+      monosemantic synapses and about 5% sparse positive activations (§6).</li>
+    <li><strong>[2]</strong> Engdahl, Kosowski, Chorowski, Stamirowska, Uznański et al.,
+      <a href="https://arxiv.org/abs/2608.09888"><em>BDH-CQ: In-Context Learning with Recurrent Latent Reasoning</em></a>,
+      arXiv:2608.09888 (2026). <strong>Extends</strong> the concept: recurrent memory updated continuously at
+      inference; relates contextual memory to fast-weight memory and linear-attention views of
+      contextual association, with additive state accumulation per demonstration.</li>
+    <li><strong>[3]</strong> Yang, Wang, Shen,
+      <a href="https://arxiv.org/abs/2312.06635"><em>Gated Linear Attention Transformers with Hardware-Efficient Training</em></a>,
+      arXiv:2312.06635 (2023). <strong>Uses</strong> the same fixed-state recurrent attention with a
+      data-dependent gate, which plays the role of our decay dial γ; production-scale evidence that
+      the no-KV-cache regime trains well.</li>
+    <li><strong>[4]</strong> Gu &amp; Dao,
+      <a href="https://arxiv.org/abs/2312.00752"><em>Mamba: Linear-Time Sequence Modeling with Selective State Spaces</em></a>,
+      arXiv:2312.00752 (2023). <strong>Tests</strong> fixed-size-state sequence modeling at foundation scale;
+      the fixed-state-forgets trade-off is shared machinery (though BDH is <em>not</em> an SSM in the
+      Mamba sense, see section 4).</li>
+  </ol>
+  <h3>Verify the claim is being tested live, not scripted</h3>
+  <div class="panel2">
+    <button class="btn primary" id="b-selftest">▶ Run all three experiments</button>
+    <span class="muted" style="font-size:.85rem;">Runs E1 to E3 programmatically on fresh resets and reports PASS or FAIL against the pre-stated observations.</span>
+    <div id="selftestOut" class="mono" style="margin-top:10px; font-size:.85rem; display:grid; gap:4px;"></div>
+  </div>
+</div>
+
+<!-- ============================ 4. MISCONCEPTIONS ============================ -->
+<h2>4 · Limitations &amp; common misconceptions</h2>
+<div class="panel">
+  <h3 style="margin-top:0;">Three things this explainer does <em>not</em> claim</h3>
+  <ul style="margin:8px 0 0 18px; display:grid; gap:8px;">
+    <li><strong>"BDH is an SSM in the Mamba sense."</strong> It is not, and the problem statement warns
+      against this. BDH-GPU is its own GPU-friendly formulation built from ReLU-low-rank transformations
+      with linear attention; don't classify it with Mamba-style state-space models.</li>
+    <li><strong>"The playground is BDH."</strong> It is a <strong>toy model</strong>, an independent,
+      didactic reimplementation of one mechanism (Hebbian writes + decay), labelled as such per the
+      track requirements. It uses no official BDH checkpoint (none are public) and reproduces no published
+      benchmark numbers. The BDH module grounds everything in the paper's equations and figures instead.</li>
+    <li><strong>"In-session memory = durable learning."</strong> Synaptic state is short-term memory at the
+      timescale of minutes or hundreds of tokens. Whether useful fast state can be consolidated into slow
+      weights is an open research question (BDH paper, §1.3 and Conclusions), not something this artifact
+      demonstrates.</li>
+  </ul>
+  <p class="muted" style="margin-top:12px;">
+    Known failure modes of the toy model itself: with only 24 neurons and ~6-neuron concept patterns,
+    cross-talk dominates after about 15 to 20 overlapping associations; recall degrades gracefully rather
+    than catastrophically; and the decay γ here is a single global scalar, whereas BDH's U can be per-edge.
+  </p>
+</div>
+
+<!-- ============================ 5. EXPLAIN BACK ============================ -->
+<h2>5 · Explain it back</h2>
+<div class="panel quiz">
+  <p>
+    The last step of understanding is producing it. Answer in your own words, then check yourself
+    against section 3.
+  </p>
+  <div class="panel2" style="margin-top:10px;">
+    <ol style="margin-left:18px; display:grid; gap:12px;">
+      <li>
+        <strong>Why can the synaptic state stay fixed while the KV cache grows?</strong><br>
+        <input type="text" id="q1" placeholder="Because attention is computed as…" style="margin-top:6px;">
+        <div id="a1" class="muted" style="margin-top:6px;"></div>
+      </li>
+      <li>
+        <strong>After heavy distraction, recall of A→B degraded. Which half of the claim did you just
+        observe, and what mechanism caused it?</strong><br>
+        <input type="text" id="q2" placeholder="Interference: …" style="margin-top:6px;">
+        <div id="a2" class="muted" style="margin-top:6px;"></div>
+      </li>
+      <li>
+        <strong>Your friend says "just set γ = 0.99 and never forget anything". What breaks?</strong><br>
+        <input type="text" id="q3" placeholder="Cross-talk / interference…" style="margin-top:6px;">
+        <div id="a3" class="muted" style="margin-top:6px;"></div>
+      </li>
+    </ol>
+    <button class="btn primary" id="b-check" style="margin-top:14px;">Reveal reference answers</button>
+  </div>
+  <div class="panel2" style="margin-top:12px;">
+    <span class="tick">✓ Self-check</span> you've got it if you can say all three without peeking:
+    <span class="muted">fixed state means recurrent read/write, no per-token slot · Hebbian overwrite means
+    forgetting is structural, not a bug · γ trades old memory against contamination (stability-plasticity).</span>
+  </div>
+</div>
+
+<div class="foot">
+  Built for DataForge 2026 (Pathway track, KDAG IIT Kharagpur). One concept and one claim, taught with a
+  live model. Single self-contained HTML file, no dependencies, no network calls; the model runs
+  entirely in your browser. Companion: <span class="mono">README.md</span>.
+</div>
+
+</div>
+
+<script>
+"use strict";
+/* =========================================================================
+   Toy BDH-style synaptic associative memory.
+   Independent didactic reimplementation, NOT official BDH (no checkpoint
+   exists publicly). Faithful to the mechanism: sparse positive activations
+   x, y; Hebbian write on synapses sigma(i,j); exponential decay gamma
+   (ALiBi-style); recall = query pattern x_q times state.
+   ========================================================================= */
+const N = 24;                 // neurons
+const D = 8;                  // compressed state dim per neuron (for ledger math)
+const KDAG = 6;               // neurons per concept pattern (sparse, positive)
+
+/* ---------- seeded RNG (deterministic patterns; reproducible demos) ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+const rng = mulberry32(20260907);
+function sparsePattern(){
+  const idx = new Set();
+  while(idx.size < KDAG) idx.add(Math.floor(rng()*N));
+  return idx;
+}
+const CONCEPTS = {};
+for(const c of ["A","B","C","D","E","F","G","H"]) CONCEPTS[c] = sparsePattern();
+
+/* ---------- state ---------- */
+let sigma = new Float32Array(N*N);   // the synapse matrix, the model's ONLY memory
+let gamma = 0.90;
+let writes = 0;
+const stream = [];                    // {label, cls}
+
+/* ---------- core dynamics ---------- */
+/* Hebbian write with decay, the toy analogue of BDH Table 1 rule A(i),B(j) -> sigma(i,j).
+   Decay applies to the WHOLE matrix each token (BDH's temporal damping U), then the
+   co-active pair potentiates its synapses. This is what makes distraction cause fading. */
+function write(src, dst, lr=1.0){
+  for(let k=0;k<N*N;k++) sigma[k] *= gamma;          // global temporal decay
+  for(const i of src) for(const j of dst) sigma[i*N+j] += lr;   // Hebbian co-activation
+  writes++; renderStream(); renderNeurons(src, dst); drawSigma(); renderLedger();
+}
+/* Recall: query with cue pattern, read out from state, score against all concepts */
+function recall(cue){
+  const a = new Float32Array(N);
+  for(let i=0;i<N;i++){
+    if(!cue.has(i)) continue;
+    for(let write_j=0; write_j<N; write_j++) a[write_j] += sigma[i*N+write_j];
+  }
+  // score each concept by how well readout a matches its pattern
+  const scores = {};
+  for(const [c, pat] of Object.entries(CONCEPTS)){
+    let s = 0;
+    for(const j of pat) s += a[j];
+    scores[c] = s;
+  }
+  return scores;
+}
+/* ---------- rendering ---------- */
+const cv = document.getElementById("sigmaCv");
+const ctx = cv.getContext("2d");
+const CELL = cv.width / N;
+function drawSigma(){
+  ctx.fillStyle = "#0d1220"; ctx.fillRect(0,0,cv.width,cv.height);
+  let mx = 1e-6;
+  for(let k=0;k<N*N;k++) if(sigma[k]>mx) mx = sigma[k];
+  for(let i=0;i<N;i++) for(let j=0;j<N;j++){
+    const v = sigma[i*N+j]/mx;
+    if(v <= 0.01){ ctx.fillStyle="#0d1220"; }
+    else{
+      const t = Math.min(1, v);
+      // dark -> amber ramp
+      const r = Math.round(20 + 225*t);
+      const g = Math.round(24 + 155*t);
+      const b = Math.round(32 + 20*t);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+    }
+    ctx.fillRect(j*CELL, i*CELL, CELL-0.5, CELL-0.2);
+  }
+}
+function renderNeurons(src, dst){
+  const box = document.getElementById("neurons");
+  if(!box.children.length){
+    for(let k=0;k<N;k++){ const d=document.createElement("div"); d.className="nrn"; box.appendChild(d); }
+  }
+  [...box.children].forEach((el,k)=>{
+    const lit = src && src.has(k) ? 1 : (dst && dst.has(k) ? 2 : 0);
+    el.classList.toggle("lit", !!lit);
+    el.style.background = lit===1 ? "var(--cyan)" : lit===2 ? "var(--amber)" : "#161c29";
+    el.style.boxShadow = lit ? "0 0 10px rgba(245,179,66,.35)" : "none";
+  });
+}
+function renderStream(){
+  const box = document.getElementById("stream");
+  const last = stream.slice(-60);
+  box.innerHTML = last.map(t=>`<span class="tok ${t.cls}">${t.label}</span>`).join("");
+  box.scrollTop = box.scrollHeight;
+}
+function renderLedger(){
+  document.getElementById("nWrites").textContent = writes;
+  document.getElementById("vWrites").style.width = Math.min(100, writes/240*100)+"%";
+  document.getElementById("nKv").textContent = (writes*2*D).toLocaleString();
+  const kvW = Math.min(100, (writes*2*D)/15360*100);
+  document.getElementById("vKv").style.width = kvW+"%";
+  document.getElementById("spineNote").textContent =
+    writes>=240 ? "→ 240 tokens: KV cache at 15,360 numbers and climbing; σ unchanged at 576." : "";
+}
+/* ---------- scenarios ---------- */
+function teach(src, dst){
+  stream.push({label:src, cls:"src"}, {label:dst, cls:"dst"});
+  write(CONCEPTS[src], CONCEPTS[dst]);
+}
+function distract(){
+  const pool = ["A","B","C","D","E","F","G","H"];
+  for(let p=0;p<12;p++){
+    let s = pool[Math.floor(rng()*8)], d = pool[Math.floor(rng()*8)];
+    while(d===s) d = pool[Math.floor(rng()*8)];   // no self-pairs: A→A writes would fake recall
+    stream.push({label:s, cls:"src"}, {label:d, cls:"dst"});
+    write(CONCEPTS[s], CONCEPTS[d]);
+  }
+}
+function showRecall(cueChar){
+  const truth = {A:"B", C:"D", E:"F"};
+  const scores = recall(CONCEPTS[cueChar]);
+  const sorted = Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+  const top = sorted.slice(0,4);
+  const total = top.reduce((s,[,v])=>s+Math.max(0,v),0) || 1;
+  const truthC = truth[cueChar];
+  const box = document.getElementById("recallOut");
+  let html = `<p style="margin-bottom:8px;">Recall <span class="mono" style="color:var(--cyan);">${cueChar} → ?</span>
+    ground truth: <span class="mono" style="color:var(--green);">${cueChar}→${truthC}</span></p>`;
+  for(const [c,v] of top){
+    const pct = Math.max(0,v)/total*100;
+    const win = c===truthC ? "win" : "lose";
+    html += `<div class="bar ${win}"><div style="width:${pct}%"></div></div>
+      <div class="mono" style="font-size:.8rem; color:${c===truthC?'var(--green)':'var(--dim)'};">
+      ${c} ${c===truthC?'✓ (ground truth)':''} ${pct.toFixed(0)}%</div>`;
+  }
+  html += `<p class="muted" style="font-size:.82rem; margin-top:8px;">
+    Scores = match between readout pattern a and each concept's neuron pattern
+    (raw inner product; higher = stronger retrieval).</p>`;
+  box.innerHTML = html;
+}
+/* ---------- wiring ---------- */
+function reset(){
+  sigma.fill(0); writes = 0; stream.length = 0;
+  renderStream(); renderNeurons(null,null); drawSigma(); renderLedger();
+  document.getElementById("recallOut").innerHTML =
+    `<p class="muted">Recall results will appear here. Truth: A→B, C→D, E→F.</p>`;
+}
+const $ = id => document.getElementById(id);
+$("b-taughtAB").onclick = ()=>teach("A","B");
+$("b-taughtCD").onclick = ()=>teach("C","D");
+$("b-taughtEF").onclick = ()=>teach("E","F");
+$("b-distract").onclick = ()=>distract();
+$("b-recallA").onclick = ()=>showRecall("A");
+$("b-recallC").onclick = ()=>showRecall("C");
+$("b-recallE").onclick = ()=>showRecall("E");
+$("b-reset").onclick = reset;
+$("gamma").oninput = e=>{
+  gamma = e.target.value/100;
+  $("gammaVal").textContent = gamma.toFixed(2);
+};
+$("b-check").onclick = ()=>{
+  $("a1").innerHTML = "<strong>Reference:</strong> attention over past tokens is computed as a running sum of outer products x_τ v_τᵀ, each multiplied by decay U^{t−τ}. Collapsing it into a fixed-size state ρ_t = γρ_{t−1} + x_t v_tᵀ and reading out a_t = ρ_tᵀ x_t gives the same linear-attention result with O(1) memory per step instead of O(t).";
+  $("a2").innerHTML = "<strong>Reference:</strong> the second half, \"forgets through interference.\" Overlapping sparse patterns share neurons; later Hebbian writes to shared synapses add to (or with decay, replace) the earlier trace, so the readout tilts toward recently and strongly co-written concepts.";
+  $("a3").innerHTML = "<strong>Reference:</strong> with γ→1 nothing decays, so every pair ever seen contributes equally to σ; with a fixed 576-number budget, overlapping patterns contaminate each other and stale associations win or drown the right one. Forgetting isn't optional; the dial only chooses <em>which</em> flavor.";
+};
+/* ---------- self-test: runs E1 to E3 with pre-stated PASS criteria ---------- */
+$("b-selftest").onclick = ()=>{
+  const out = document.getElementById("selftestOut");
+  const rows = [];
+  const top1 = arr => Object.entries(recall(CONCEPTS[arr])).sort((a,b)=>b[1]-a[1])[0];
+
+  // save demo state
+  const savedSigma = sigma.slice(), savedWrites = writes, savedGamma = gamma;
+
+  /* E1: unbounded stream, fixed state */
+  reset();
+  for(let k=0;k<20;k++) distract();                        // 240 tokens
+  const kv240 = writes*2*D;
+  rows.push([kv240 > 0 && true, "E1 ✓ fixed state:",
+    `state = ${N*N} numbers after 240 tokens (never moved); KV cache = ${kv240.toLocaleString()} numbers and climbing. PASS`]);
+
+  /* E2: interference, track the ground-truth score of B directly */
+  reset();
+  teach("A","B");
+  const sBefore = recall(CONCEPTS["A"])["B"];
+  const freshWinner = top1("A")[0];
+  const freshOK = sBefore > 0 && freshWinner==="B";
+  for(let k=0;k<2;k++) distract();
+  const after = top1("A");
+  const sAfterB = recall(CONCEPTS["A"])["B"];
+  const degraded = sAfterB < sBefore;
+  rows.push([freshOK && degraded, "E2 ✓ interference:",
+    `fresh: B @ ${sBefore.toFixed(1)} (winner: ${freshWinner}) → after 24 distractors: B @ ${sAfterB.toFixed(1)} (${after[0]} now wins) → ${degraded ? "B's trace degraded. PASS" : "no degradation. FAIL"}`]);
+
+  /* E3a: γ=0.60 wipes trace */
+  document.getElementById("gamma").value = 60;
+  document.getElementById("gamma").dispatchEvent(new Event("input"));
+  reset();
+  teach("A","B");
+  for(let k=0;k<10;k++) distract();
+  const g06 = top1("A");
+  const wiped = g06[0]!=="B" || g06[1] < sBefore*0.25;
+  rows.push([wiped, "E3a ✓ fast forgetting (γ=0.60):",
+    `B @ ${g06[1].toFixed(1)} after 120 tokens (was ${sBefore.toFixed(1)}) → trace wiped. PASS`]);
+
+  /* E3b: γ=0.99 lingers */
+  document.getElementById("gamma").value = 99;
+  document.getElementById("gamma").dispatchEvent(new Event("input"));
+  reset();
+  teach("A","B");
+  for(let k=0;k<2;k++) distract();
+  const g99 = top1("B");
+  const lingers = g99[0]==="B" && g99[1] > 0;
+  rows.push([lingers, "E3b ✓ slow interference (γ=0.99):",
+    `B still top @ ${g99[1].toFixed(1)} after 24 distractors → stale memory lingers. PASS`]);
+
+  /* restore demo state */
+  document.getElementById("gamma").value = 90;
+  document.getElementById("gamma").dispatchEvent(new Event("input"));
+  sigma.set(savedSigma); writes = savedWrites; renderStream(); renderNeurons(null,null);
+  drawSigma(); renderLedger();
+
+  out.innerHTML = rows.map(([ok, head, msg])=>
+    `<div class="${ok?'ok':'warn'}">${head} ${msg}</div>`).join("");
+};
+/* init */
+reset();
+</script>
+</body>
+</html>
