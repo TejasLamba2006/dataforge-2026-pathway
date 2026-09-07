@@ -77,7 +77,7 @@
   .tok.dst{color:var(--amber); border-color:#5c4a1c;}
   /* recall result */
   .bar{height:16px; border-radius:4px; background:#1a2130; overflow:hidden; margin:4px 0;}
-  .bar>div{height:100%; background:var(--cyan); transition:width .25s;}
+  .bar>div{height:100%; width:100%; background:var(--cyan); transform-origin:left; transition:transform .25s;}
   .bar.win>div{background:var(--green);}
   .bar.lose>div{background:var(--red);}
   /* ledger */
@@ -523,7 +523,7 @@ function showRecall(cueChar){
   for(const [c,v] of top){
     const pct = Math.max(0,v)/total*100;
     const win = c===truthC ? "win" : "lose";
-    html += `<div class="bar ${win}"><div style="width:${pct}%"></div></div>
+    html += `<div class="bar ${win}"><div style="transform:scaleX(${pct/100})"></div></div>
       <div class="mono" style="font-size:.8rem; color:${c===truthC?'var(--green)':'var(--dim)'};">
       ${c} ${c===truthC?'✓ (ground truth)':''} ${pct.toFixed(0)}%</div>`;
   }
